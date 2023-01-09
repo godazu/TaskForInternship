@@ -1,0 +1,72 @@
+# task was completed using R programming language in RStudio
+
+# DATA MANIPULATION TASK
+
+# lets import the given data
+library(rio)
+bankfull <- import("C:\\Users\\godaz\\Downloads\\bank-full.csv")
+bankfull
+library(dplyr)
+
+#returns rows 100-120 from our data with columns age, housing, loan, balance
+selected1 <- select(bankfull, age, housing, loan, balance)
+selected1[100:120,]
+
+#returns 10 randomly generated rows from our data
+selected2<-sample(1:nrow(bankfull), 10)
+selected2
+bankfull[selected2,]
+
+#filtering the data and finding every person that is 18 years old and showing their job title, their education level and their marital status
+filter1 <- subset(bankfull, age == 18, select = c("job","education","marital"))
+filter1
+
+#selecting the last 5 rows with education as tertiary and balance more than 10000
+filter2 <- filter(bankfull, education == "tertiary", balance > 10000)
+tail(filter2)
+
+#renames variables
+colnames(bankfull) <- c("age of participants","occupation","marital status","education of participants",
+                        "default", "balance", "housing","loan"  ,"contact" ,"day", "month" ,"duration", "campaign",
+                        "pdays", "previous", "poutcome","y")
+View(bankfull)
+bankfull
+
+#delete unnecessary variables
+delete <- subset(bankfull, select = -c(default, loan, housing))
+delete
+#undoes the deleting of variables
+undodelete <- subset(bankfull, select = c(default, loan, housing))
+undodelete
+
+#creating a column “Wealthy” which stores TRUE if the balance of a participant is more than 5000 eur
+col1 <- mutate(bankfull, Wealthy = balance > 5000)
+col1
+table(col1$Wealthy)
+
+#ordering data by several variables, in our case - by age and job title
+order1<- bankfull[10:20,]
+order2 <- order1[order(order1$job, order1$age), ]
+order2
+
+#ordering data by several variables, in our case - by balance and education
+order0<-select(bankfull, age, housing,education,loan, balance)
+order1<- order0[10:20,]
+order2 <- order1[order(order1$balance, order1$education),]
+order2
+
+#summarizing statistics
+summary(bankfull$age)
+summary(bankfull)
+#calculating the mean of age and balance for every type of job
+bankfull %>%
+  group_by(job) %>%
+  summarise(
+    count = n(),
+    mean_age = mean(age),
+    mean_balance = mean(balance)
+  )
+#summarizing specific variables selected with a character vector:
+bankfull %>%
+  group_by(marital) %>%
+  summarise_at(c("age", "balance", "duration"), mean)
