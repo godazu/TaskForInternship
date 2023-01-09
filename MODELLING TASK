@@ -1,0 +1,117 @@
+#task was completed using R programming language in RStudio
+
+# MODELLING TASK
+
+#let's import our data
+library(rio)
+library(readr)
+bank2 <- import("C:\\Users\\godaz\\Downloads\\bank-full.csv")
+
+# Checking the structure of our data
+str(bank2)
+
+# Subsetting the data and keeping the required variables
+bank2 <- bank2[ ,c("job", "marital", "age", "y")]
+# Checking the dim. We have 45211 rows and 4 columns
+dim(bank2)
+
+# Generating the frequency tables
+table(bank2$job)
+table(bank2$marital)
+
+bank2$job <- as.factor(bank2$job)
+bank2$marital <- as.factor(bank2$marital)
+bank2$y <- as.factor(bank2$y)
+
+# Converting unknown to NA
+bank2[bank2 == "unknown"] <- NA
+# Keeping only the na.omit() function
+bank2 <- na.omit(bank2)
+
+#plotting
+library(ggplot2)
+ggplot(bank2, aes(age)) +
+  geom_histogram(aes(fill = y), color = "black", binwidth = 2)
+
+# Building the model
+install.packages("caret")
+require(caret)
+# Splitting the data into train and test
+index <- createDataPartition(bank2$y, p = .70, list = FALSE)
+train <- bank2[index, ]
+test <- bank2[-index, ]
+# Training the model
+logistic_model <- glm(y ~ ., family = binomial(), train)
+# Checking the model
+summary(logistic_model)
+
+#analyzing the table of deviance
+anova(logistic_model, test="Chisq")
+install.packages("pscl")
+library(pscl)
+pR2(logistic_model)
+
+#assessing the predictive ability of the model
+fitted.results <- predict(logistic_model,test,type="response")
+fitted.results <- ifelse(fitted.results > 0.33,"yes","no")
+misClasificError <- mean(fitted.results != test$y)
+print(paste('Accuracy',1-misClasificError))
+
+library(ROCR)
+p <- predict(logistic_model,test, type="response")
+pr <- prediction(p, test$y)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr")
+plot(prf)
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc
+
+# more detailed calculations
+# Predicting in the test dataset
+pred_prob <- predict(logistic_model, test, type = "response")
+
+# Converting from probability to actual output
+train$pred_class <- ifelse(logistic_model$fitted.values >= 0.33, "yes", "no")
+# Generating the classification table
+ctab_train <- table(train$y, train$pred_class)
+ctab_train
+
+# Converting from probability to actual output
+test$pred_class <- ifelse(pred_prob >= 0.33, "yes", "no")
+# Generating the classification table
+ctab_test <- table(test$y, test$pred_class)
+ctab_test
+
+# Accuracy in Training dataset
+accuracy_train <- sum(diag(ctab_train))/sum(ctab_train)*100
+accuracy_train
+
+# Accuracy in Test dataset
+accuracy_test <- sum(diag(ctab_test))/sum(ctab_test)*100
+accuracy_test
+
+# TPR in Train dataset
+TPR_train <- (ctab_train[2, 2]/sum(ctab_train[2, ]))*100
+TPR_train
+
+# TPR in Test dataset
+TPR_test <- (ctab_test[2, 2]/sum(ctab_test[2, ]))*100
+TPR_test
+
+
+# TNR in Train dataset
+TNR_train <- (ctab_train[1, 1]/sum(ctab_train[1, ]))*100
+TNR_train
+
+# TNR in Test dataset
+TNR_test <- (ctab_test[1, 1]/sum(ctab_test[1, ]))*100
+TNR_test
+
+# Precision in Train dataset
+Precision_train <- (ctab_train[2, 2]/sum(ctab_train[, 2]))*100
+Precision_train
+
+# Precision in Test dataset
+Precision_test <- (ctab_test[2, 2]/sum(ctab_test[, 2]))*100
+Precision_test
+
