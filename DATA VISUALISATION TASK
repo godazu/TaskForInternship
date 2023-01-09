@@ -1,0 +1,185 @@
+
+#task was done using R programming language in RStudio
+
+# lets import the given data
+install.packages("rio")
+library(rio)
+bank <- read.csv(file.choose(),header=TRUE,sep=";",dec=".")
+bank
+bankfull <- import("C:\\Users\\godaz\\Downloads\\bank-full.csv")
+head(bankfull)
+
+# DATA VISUALIZING
+
+# lets start with simple plots using ggplot2
+
+# how average yearly balance depends on age
+install.packages("ggplot2")
+library(ggplot2)
+ggplot(data = bankfull,
+       mapping = aes(x = age, y = balance)) +
+  geom_point()
+
+
+# we can delete the outliers
+install.packages("dplyr")
+library(dplyr)
+bankfull1 <- filter(bankfull, balance < 40000)
+ggplot(data = bankfull1,
+       mapping = aes(x = age, y = balance)) +
+  geom_point()
+
+
+#lets change some parameters, also add marital status to the plot and represent it by color.
+bankfull2 <- filter(bankfull, balance < 40000)
+ggplot(data = bankfull2,
+       mapping = aes(x = age, 
+                     y = balance,
+                     color = marital)) +
+  geom_point(alpha = .7,
+             size = 1) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) +
+  scale_y_continuous(breaks = seq(0, 40000, 10000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", "cornflowerblue","green"))
+
+
+#lets add a facet that reproduces a graph for each level a given variable - in our case the variable "job"
+#we shall also give labels for our graph and switch marital status for education
+bankfull3 <- filter(bankfull, balance < 35000)
+ggplot(data = bankfull3,
+       mapping = aes(x = age, 
+                     y = balance,
+                     color = education)) +
+  geom_point(alpha = .7,
+             size = 1) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) +
+  scale_y_continuous(breaks = seq(0, 35000, 10000),
+                     label = scales::dollar) +
+  scale_color_manual(values = c("indianred3", "cornflowerblue","green", "pink"))+
+  facet_wrap(~job)+
+  labs(title = "Relationship between average yearly balance and age",
+     x = " Age",
+     y = "Average yearly balance",
+     color = "Education")
+
+
+#we can move on to univariate graphs that plot the distribution of data from a single variable
+ggplot(bankfull, aes(x = job)) + 
+  geom_bar(fill = "cornflowerblue", 
+           color="black") +
+  labs(x = "Job", 
+       y = "Frequency", 
+       title = "Participants by their jobs")
+
+
+# let us plot the bars in ascending order and also flip the x and y axes so it becomes a horizontal bar chart
+library(dplyr)
+plotdata <- bankfull %>%
+  count(job)
+ggplot(plotdata, 
+       aes(x = reorder(job, n), 
+           y = n)) + 
+  geom_bar(stat = "identity", fill = "cornflowerblue", 
+           color="black") +
+  labs(x = "Job", 
+       y = "Frequency", 
+       title  = "Participants by their jobs") +
+ coord_flip()
+
+
+# we can create a basic ggplot2 pie chart with slice labels
+plotdata2 <- bankfull %>%
+  count(education) %>%
+  arrange(desc(education)) %>%
+  mutate(prop = round(n * 100 / sum(n), 1),
+         lab.ypos = cumsum(prop) - 0.5  *prop)
+plotdata2$label <- paste0(plotdata2$education, "\n",
+                         round(plotdata2$prop), "%")
+ggplot(plotdata2, 
+       aes(x = "", 
+           y = prop, 
+           fill = education)) +
+  geom_bar(width = 1, 
+           stat = "identity", 
+           color = "black") +
+  geom_text(aes(y = lab.ypos, label = label), 
+            color = "black") +
+  coord_polar("y", 
+              start = 0, 
+              direction = -1) +
+  theme_void() +
+  theme(legend.position = "TRUE") +
+  labs(title = "Participants by their education")
+
+
+#another way to visualize data is to use histograms
+#we shall plot last contact duration in seconds
+library(scales)
+bankfull4 <- filter(bankfull, duration < 1550)
+ggplot(bankfull4, 
+       aes(x = duration, 
+           y= after_stat(count) / sum(after_stat(count)))) +
+  geom_histogram(fill = "red", 
+                 color = "white", 
+                 binwidth = 20) + 
+  labs(title="Participants by last contact duration, in seconds", 
+       y = "Percent",
+       x = "Duration") +
+  scale_y_continuous(labels = percent)
+
+
+# Create a kernel density plot of last contact duration in seconds
+bankfull5 <- filter(bankfull, duration < 1550)
+ggplot(bankfull5, aes(x = duration)) +
+  geom_density(fill = "deepskyblue", 
+               bw = 5) + 
+  labs(title = "Participants by last contact duration in seconds",
+       subtitle = "bandwidth = 5",
+       y = "Density",
+       x = "Duration") 
+
+
+#Another way to plot our data is to use box plots. Let's see the distribution of ages by marital status 
+ggplot(bankfull, 
+       aes(x = marital, 
+           y = age)) +
+  geom_boxplot() +
+  labs(title = "Age distribution by marital status",
+       y = "Age",
+       x = "Marital status") 
+
+
+#A similar graph is violin plots. Let's plot the distribution of ages by marital status.
+ggplot(bankfull, 
+       aes(x = marital,
+           y = age)) +
+  geom_violin() +
+  labs(title = "Age distribution by marital status",
+       y = "Age",
+       x = "Marital status") 
+
+
+# bar plot, with each bar representing 100%
+ggplot(bankfull, 
+       aes(x = job, 
+           fill = contact)) + 
+  geom_bar(position = "fill") +
+  labs(y = "Proportion",
+       title = "Contact communication type distribution by the job you have",
+       x = "Job")
+
+
+# The last type of graph we will talk about is ridgeline graph.
+library(ggplot2)
+library(ggridges)
+ggplot(bankfull, 
+       aes(x = age, 
+           y = job, 
+           fill = job)) +
+  geom_density_ridges() + 
+  theme_ridges() +
+  labs(y = "Job",
+       title = "Age distribution by type of job",
+       x = "Age") +
+  theme(legend.position = "none")
